@@ -88,12 +88,12 @@ maprequest = Struct('maprequest',
       )
       
       # Source EID address is 32 bit if ipv4
-      If(lambda ctx: ctx["source_eid_address"] = 4,
+      If(lambda ctx: ctx["source_eid_afi"] = 4,
           Bits('source_eid_address', 32)
       ),
           
       # Source EID address is 128 bit if ipv6
-      If(lambda ctx: ctx["source_eid_address"] = 6,      
+      If(lambda ctx: ctx["source_eid_afi"] = 6,      
           Bits('source_eid_address', 128)
       )
       
