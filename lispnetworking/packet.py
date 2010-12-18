@@ -83,17 +83,17 @@ maprequest = Struct('maprequest',
       # Source-EID-Address: 
       # determine if this is a maprequest used for map-cache refreshing or rloc probing
       # if 0 then source-eid-address field has length 0
-      If(lamda ctx: ctx["source_eid_afi"] = 0,
+      If(lambda ctx: ctx["source_eid_afi"] = 0,
           Padding(0)
       )
       
       # Source EID address is 32 bit if ipv4
-      If(lamda ctx: ctx["source_eid_address"] = 4,
+      If(lambda ctx: ctx["source_eid_address"] = 4,
           Bits('source_eid_address', 32)
       ),
           
       # Source EID address is 128 bit if ipv6
-      If(lamda ctx: ctx["source_eid_address"] = 6,      
+      If(lambda ctx: ctx["source_eid_address"] = 6,      
           Bits('source_eid_address', 128)
       )
       
