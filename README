@@ -1,1 +1,7 @@
-a Python module for parsing and generating LISP packages, and resolving map requests.
+a Python module for parsing and generating LISP packets, and generating & resolving map requests.
+
+This code is based on the following drafts:
+
+	- http://tools.ietf.org/html/draft-ietf-lisp-09
+	- https://datatracker.ietf.org/doc/draft-farinacci-lisp-lcaf/
+
