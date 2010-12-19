@@ -1,5 +1,6 @@
 from construct import *
 from construct.protocols.layer3 import ipv4, ipv6
+from construct.protocols.layer4 import udp
 
 # maybe useful 
 
@@ -12,39 +13,26 @@ def ProtocolEnum(subcon):
 ippacket = Struct('ippacket',
    Anchor("base"),
     EmbeddedBitStruct(
-      Enum(
-        BitField('type', 4),
-        v4 = 4,
-        v6 = 6
-      ),
+      ProtocolEnum(BitField('type', 4)),
       Padding(4),
     ),
     Pointer(lambda ctx: ctx.base,
         Switch("data", lambda ctx: ctx.type,
             {
-                "v4": ipv4.ipv4_header,
-                "v6": ipv6.ipv6_header
+                "IPv4": ipv4.ipv4_header,
+                "IPv6": ipv6.ipv6_header
             }
         )
     ),  
 )
-encapcontrol = Struct('encapcontrol',
-    EmbeddedBitStruct(
-      Enum(
-        BitField('type', 4),
-        reserved = 0,
-        maprequest = 1,
-        mapreply = 2,
-        mapregister = 3,
-        encapcontrol = 8
-      ),
-      Padding(32-4),
-    ),
-    ippacket
-)
+
 maprequest = Struct('maprequest',
     EmbeddedBitStruct(
-      
+    
+      # 8 bits might be needed here because the first byte is the type of the thing again, but really this 
+      # should be handeld in the encapcontrol struct - job
+      Padding(8),  
+
       # A This is an authoritative bit, which is set to 0 for UDP-based Map-Requests
       #      sent by an ITR.
       Flag('a'),          
@@ -84,7 +72,7 @@ maprequest = Struct('maprequest',
       # determine if this is a maprequest used for map-cache refreshing or rloc probing
       # if 0 then source-eid-address field has length 0
       If('source_eid_afi' == 0,
-          Padding(0)
+          Bits("source_eid_address", 0)
       ),
       
       # Source EID address is 32 bit if ipv4
@@ -95,10 +83,10 @@ maprequest = Struct('maprequest',
       # Source EID address is 128 bit if ipv6
       If('maprequest.source_eid_afi' == 6,      
           Bits('source_eid_address', 128)
-      )
+      ),
       
-      # vanaf hier had ik vandaag geen zin meer - job
-          
+      # the following fields still need implementation
+                
       # ITR-RLOC-AFI:
       
       # ITR-RLOC Address:
@@ -112,8 +100,33 @@ maprequest = Struct('maprequest',
       # Map-Reply Record: 
       
       # Mapping Protocol Data: (optional field)          
-   )   
+
+      # because i havent finished defining the complete maprequest struct we ignore part of it 
+      # but not sure if this is needed in construct
+      # and i don't really know how big the thing is so the 105 is just guessing - job
+       Padding(105)
+   ),
 )
+
+encapcontrol = Struct('encapcontrol',
+    EmbeddedBitStruct(
+      Enum(
+        BitField('type', 4),
+        reserved = 0,
+        maprequest = 1,
+        mapreply = 2,
+        mapregister = 3,
+        encapcontrol = 8
+      ),
+      Padding(32-4),
+    ),
+
+    ippacket,
+    udp.udp_header,
+    maprequest
+)
+
+
 
 mapreply = Struct('mapreply')
 mapregister = Struct('mapregister')
