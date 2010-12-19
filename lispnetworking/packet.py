@@ -2,13 +2,22 @@ from construct import *
 from construct.protocols.layer3 import ipv4, ipv6
 from construct.protocols.layer4 import udp
 
-# maybe useful 
-
+# maybe useful, also need to make a macro for the type of the control packet - job
 def ProtocolEnum(subcon):
     return Enum(subcon,
         IPv4 = 4,
         IPv6 = 6
     )
+
+def MessageTypeEnum(subcon):
+    return  Enum(subcon,
+        reserved = 0,
+        maprequest = 1,
+        mapreply = 2,
+        mapregister = 3,
+        encapcontrol = 8
+    )
+                                                                
 
 ippacket = Struct('ippacket',
    Anchor("base"),
@@ -29,24 +38,23 @@ ippacket = Struct('ippacket',
 maprequest = Struct('maprequest',
     EmbeddedBitStruct(
     
-      # 8 bits might be needed here because the first byte is the type of the thing again, but really this 
-      # should be handeld in the encapcontrol struct - job
-      Padding(8),  
+      # by now we already know it's a maprequest - job      
+      MessageTypeEnum(BitField('type', 4)),
 
       # A This is an authoritative bit, which is set to 0 for UDP-based Map-Requests
       #      sent by an ITR.
-      Flag('a'),          
+      Flag('authoritive'),          
       
       # M When set, it indicates a Map-Reply Record segment is included in
       #      the Map-Request.
-      Flag('m'),
+      Flag('map_reply_record'),
       
       # P This is the probe-bit which indicates that a Map-Request SHOULD be
       #     treated as a locator reachability probe. 
-      Flag('p'),
+      Flag('probe'),
       
       # S 'SMR bit' 
-      Flag('smr'),
+      Flag('send_map_request'),
       
       # a few bits which are reserved, should be set 0 when sending, ignore when receiving
       # thus we treat it as padding :-)
@@ -66,24 +74,24 @@ maprequest = Struct('maprequest',
       Bytes('nonce', 8),
       
       # Source-EID-AFI:  Address family of the "Source EID Address" field.    
-      ProtocolEnum(BitField('source_eid_afi', 16)),
+#      ProtocolEnum(BitField('source_eid_afi', 16)),
       
       # Source-EID-Address: 
       # determine if this is a maprequest used for map-cache refreshing or rloc probing
       # if 0 then source-eid-address field has length 0
-      If('source_eid_afi' == 0,
-          Bits("source_eid_address", 0)
-      ),
+#      If('source_eid_afi' == 0,
+#          Bits("source_eid_address", 0)
+#      ),
       
       # Source EID address is 32 bit if ipv4
-      If('maprequest.source_eid_afi' == 4,
-          Bits('source_eid_address', 32)
-      ),
+#      If('maprequest.source_eid_afi' == 4,
+#          Bits('source_eid_address', 32)
+#      ),
           
       # Source EID address is 128 bit if ipv6
-      If('maprequest.source_eid_afi' == 6,      
-          Bits('source_eid_address', 128)
-      ),
+#      If('maprequest.source_eid_afi' == 6,      
+#          Bits('source_eid_address', 128)
+#      ),
       
       # the following fields still need implementation
                 
@@ -101,47 +109,50 @@ maprequest = Struct('maprequest',
       
       # Mapping Protocol Data: (optional field)          
 
-      # because i havent finished defining the complete maprequest struct we ignore part of it 
-      # but not sure if this is needed in construct
-      # and i don't really know how big the thing is so the 105 is just guessing - job
-       Padding(105)
    ),
 )
-
-encapcontrol = Struct('encapcontrol',
-    EmbeddedBitStruct(
-      Enum(
-        BitField('type', 4),
-        reserved = 0,
-        maprequest = 1,
-        mapreply = 2,
-        mapregister = 3,
-        encapcontrol = 8
-      ),
-      Padding(32-4),
-    ),
-
-    ippacket,
-    udp.udp_header,
-    maprequest
-)
-
-
 
 mapreply = Struct('mapreply')
 mapregister = Struct('mapregister')
 
+encapcontrol = Struct('encapcontrol',
+    EmbeddedBitStruct(
+      MessageTypeEnum(BitField('type_outer_header', 4)),
+      Padding(32-4),
+    ),
+    ippacket,
+    udp.udp_header,
+
+    Anchor("lisp_control_message"),
+
+    EmbeddedBitStruct(
+      Enum(
+        BitField('type_inner_header', 4),
+        maprequest = 1
+      ),
+      Padding(4),
+    ),
+
+    Pointer(lambda ctx: ctx.lisp_control_message,
+        Switch("lisp_control_message", lambda ctx: ctx.type_inner_header,
+            {
+                "maprequest": maprequest
+            }
+        )
+    ),
+
+    Probe()
+
+)
+
+
+
+
+
 structure = Struct('lisppacket',
     Anchor("base"),
     EmbeddedBitStruct(
-      Enum(
-        BitField('type', 4),
-        reserved = 0,
-        maprequest = 1,
-        mapreply = 2,
-        mapregister = 3,
-        encapcontrol = 8
-      ),
+      MessageTypeEnum(BitField('type',4)),
       Padding(4),
     ),
     Pointer(lambda ctx: ctx.base,
