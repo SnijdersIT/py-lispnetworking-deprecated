@@ -2,6 +2,10 @@ from construct import *
 from construct.protocols.layer3 import ipv4, ipv6
 from construct.protocols.layer4 import udp
 
+<<<<<<< HEAD
+=======
+# maybe useful, also need to make a macro for the type of the control packet - job
+>>>>>>> fe85676c8051bfbc7aa6cce46ea91d9edb6b1c07
 def ProtocolEnum(subcon):
     return Enum(subcon,
         IPv4 = 4,
@@ -17,6 +21,10 @@ def MessageTypeEnum(subcon):
         encapcontrol = 8
     )
                                                                 
+<<<<<<< HEAD
+=======
+
+>>>>>>> fe85676c8051bfbc7aa6cce46ea91d9edb6b1c07
 ippacket = Struct('ippacket',
    Anchor("base"),
     EmbeddedBitStruct(
@@ -118,9 +126,10 @@ encapcontrol = Struct('encapcontrol',
       MessageTypeEnum(BitField('type_outer_header', 4)),
       Padding(32-4),
     ),
-
     ippacket,
     udp.udp_header,
+<<<<<<< HEAD
+=======
 
     Anchor("lisp_control_message"),
 
@@ -143,6 +152,33 @@ encapcontrol = Struct('encapcontrol',
     Probe()
 
 )
+>>>>>>> fe85676c8051bfbc7aa6cce46ea91d9edb6b1c07
+
+    Anchor("lisp_control_message"),
+
+    EmbeddedBitStruct(
+      Enum(
+        BitField('type_inner_header', 4),
+        maprequest = 1
+      ),
+      Padding(4),
+    ),
+
+<<<<<<< HEAD
+    Pointer(lambda ctx: ctx.lisp_control_message,
+        Switch("lisp_control_message", lambda ctx: ctx.type_inner_header,
+            {
+                "maprequest": maprequest
+            }
+        )
+    ),
+
+    Probe()
+
+)
+=======
+
+>>>>>>> fe85676c8051bfbc7aa6cce46ea91d9edb6b1c07
 
 structure = Struct('lisppacket',
     Anchor("base"),
