@@ -2,7 +2,6 @@ from construct import *
 from construct.protocols.layer3 import ipv4, ipv6
 from construct.protocols.layer4 import udp
 
-# maybe useful, also need to make a macro for the type of the control packet - job
 def ProtocolEnum(subcon):
     return Enum(subcon,
         IPv4 = 4,
@@ -18,8 +17,7 @@ def MessageTypeEnum(subcon):
         encapcontrol = 8
     )
                                                                 
-
-ippacket = Struct('ippacket',
+ippacket = Struct('ipheader',
    Anchor("base"),
     EmbeddedBitStruct(
       ProtocolEnum(BitField('type', 4)),
@@ -120,7 +118,7 @@ encapcontrol = Struct('encapcontrol',
       MessageTypeEnum(BitField('type_outer_header', 4)),
       Padding(32-4),
     ),
-    ippacket,
+    ipheader,
     udp.udp_header,
 
     Anchor("lisp_control_message"),
@@ -144,10 +142,6 @@ encapcontrol = Struct('encapcontrol',
     Probe()
 
 )
-
-
-
-
 
 structure = Struct('lisppacket',
     Anchor("base"),
