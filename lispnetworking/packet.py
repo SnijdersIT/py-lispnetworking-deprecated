@@ -17,7 +17,7 @@ def MessageTypeEnum(subcon):
         encapcontrol = 8
     )
                                                                 
-ippacket = Struct('ipheader',
+ipheader = Struct('ipheader',
    Anchor("base"),
     EmbeddedBitStruct(
       ProtocolEnum(BitField('type', 4)),
