@@ -10,7 +10,7 @@ def IP_ProtocolEnum(subcon):
 
 def AFI_Enum(subcon):
     return Enum(subcon,
-    	map_refresh = 0,
+    	zero = 0,
     	IPv4 = 1,
         IPv6 = 2,
         LCAF = 16387
@@ -39,6 +39,9 @@ ip_header = Struct('ip_header',
     )  
 )
 
+lcaf = Struct('lcaf')
+map_reply_record = Struct('map_reply_record')
+
 maprequest = Struct('maprequest',
     EmbeddedBitStruct(
     
@@ -66,7 +69,9 @@ maprequest = Struct('maprequest',
       
       # This 5-bit field is the ITR-RLOC Count, which encodes the
       #      additional number of (ITR-RLOC-AFI, ITR-RLOC Address) fields
-      Bits('itr_rloc_count', 5),
+      # we add 1 because this field starts at 0
+      
+	  Bits('itr_rloc_count', 5),
       
       # Record count, "a receiver MUST accept and
       #  process Map-Requests that contain one or more records, but a
@@ -77,43 +82,66 @@ maprequest = Struct('maprequest',
    # Nonce, An 8-byte random value created by the sender of the Map-
    #  Request.  This nonce will be returned in the Map-Reply.
    Bytes('nonce', 8),
-      
+
    # Source-EID-AFI:  Address family of the "Source EID Address" field.    
- #  AFI_Enum(Bytes('source_eid_afi', 2)),
-      
+   AFI_Enum(UBInt16('source_eid_afi')),
+
    # Source-EID-Address: 
    # determine if this is a maprequest used for map-cache refreshing or rloc probing
    # if 0 then source-eid-address field has length 0
-#      If('source_eid_afi' == 0,
-#          Bits("source_eid_address", 0)
-#      ),
-      
-      # Source EID address is 32 bit if ipv4
-#      If('maprequest.source_eid_afi' == 4,
-#          Bits('source_eid_address', 32)
-#      ),
-          
-      # Source EID address is 128 bit if ipv6
-#      If('maprequest.source_eid_afi' == 6,      
-#          Bits('source_eid_address', 128)
-#      ),
-      
-      # the following fields still need implementation
-                
-      # ITR-RLOC-AFI:
-      
-      # ITR-RLOC Address:
-      
-      # EID mask-len
-      
-      # EID-prefix-AFI:
-      
-      #  EID-prefix:
-      
-      # Map-Reply Record: 
-      
-      # Mapping Protocol Data: (optional field)          
+   
+   Switch("source_eid_address", lambda ctx: ctx.source_eid_afi,
+       {
+                "zero": Pass,
+                "IPv4": ipv4.IpAddress('source_eid_address'),
+                "IPv6": ipv6.Ipv6Address('source_eid_address'),
+                "LCAF": lcaf
+       }
+    ),
 
+   # ITR-RLOC-AFI:
+   AFI_Enum(UBInt16('itr_rloc_afi')),
+
+   # ITR-RLOC Addresses:
+   # we add +1 because the field starts counting at 0
+   MetaRepeater(lambda ctx: ctx["itr_rloc_count"] + 1,
+	   Switch("itr_rloc_address", lambda ctx: ctx.itr_rloc_afi,
+            {
+                "zero": Pass,
+                "IPv4": ipv4.IpAddress('itr_rloc_address'),
+                "IPv6": ipv6.Ipv6Address('itr_rloc_address'),
+                "LCAF": lcaf
+            }
+       )
+   ),
+              
+    #  8 bits that are reserved for future use 
+    Padding(1), 
+
+    # EID mask-len
+    UBInt8("eid_mask_len"),
+   
+    # EID-prefix-AFI:
+    AFI_Enum(UBInt16('eid_prefix_afi')),
+      
+    #  EID-prefix:
+	Switch("eid_prefix", lambda ctx: ctx.eid_prefix_afi,
+        {
+            "IPv4": ipv4.IpAddress('eid_prefix'),
+            "IPv6": ipv6.Ipv6Address('eid_prefix'),
+            "LCAF": lcaf
+         }
+    ),
+      
+	# Map-Reply Record: 
+	# this can be used for caching the RLOC's of the Source EID if the M bit is set
+	# thus with one map_request both parties know a bit more
+    If(lambda ctx: ctx["map_reply_record"],
+    	map_reply_record
+    )
+    
+    # Mapping Protocol Data: (optional field)          
+	# we don't support CONS so we ignore for the moment
    
 )
 
@@ -126,9 +154,18 @@ encapcontrol = Struct('encapcontrol',
       Padding(32-4),
     ),
     
+    # inside the encapsulated control message there is an ip header
+    # the destination in this inner header is the EID we're going to 
+    # look up.
     ip_header,
+    
+    # innder UDP header, the destination port should be 4342
     udp.udp_header,
 
+	#  At this time, only Map-Request messages and PIM
+    #  Join-Prune messages [MLISP] are allowed to be encapsulated.
+    #  but since we not doing anything with MLISP we can only switch
+    #  to the maprequest
     Peek(EmbeddedBitStruct(
       	Enum(
         	BitField('type_inner_header', 4),
@@ -142,6 +179,7 @@ encapcontrol = Struct('encapcontrol',
                 "maprequest": maprequest
             }
         ),
+        
     Probe()
 )
 
