@@ -1,8 +1,9 @@
 from construct import *
+from construct.protocols.layer3.ipv4 import ipv4_header
 from construct.protocols.layer3 import ipv4, ipv6
 from construct.protocols.layer4 import udp
 
-def ProtocolEnum(subcon):
+def IP_ProtocolEnum(subcon):
     return Enum(subcon,
         IPv4 = 4,
         IPv6 = 6
@@ -16,7 +17,6 @@ def AFI_Enum(subcon):
         LCAF = 16387
     )    
 
-
 def MessageTypeEnum(subcon):
     return  Enum(subcon,
         reserved = 0,
@@ -25,17 +25,68 @@ def MessageTypeEnum(subcon):
         mapregister = 3,
         encapcontrol = 8
     )
-                                                                
-ipheader = Struct('ipheader',
+                
+class IPv4AddressAdapter(Adapter):
+    def _encode(self, obj, context):
+        return "".join(chr(int(b)) for b in obj.split("."))
+    def _decode(self, obj, context):
+        return ".".join(str(ord(b)) for b in obj)
+
+def IPv4Address(name):
+    return IPv4AddressAdapter(Bytes(name, 4))
+
+def ProtocolEnum(code):
+    return Enum(code,
+        ICMP = 1,
+        TCP = 6,
+        UDP = 17,
+    )
+    
+ipv4_header = Struct("ipv4_header",
+    EmbeddedBitStruct(
+        Const(Nibble("version"), 4),
+        ExprAdapter(Nibble("header_length"), 
+            decoder = lambda obj, ctx: obj * 4, 
+            encoder = lambda obj, ctx: obj / 4
+        ),
+    ),
+    BitStruct("tos",
+        Bits("precedence", 3),
+        Flag("minimize_delay"),
+        Flag("high_throuput"),
+        Flag("high_reliability"),
+        Flag("minimize_cost"),
+        Padding(1),
+    ),
+    UBInt16("total_length"),
+    Value("payload_length", lambda ctx: ctx.total_length - ctx.header_length),
+    UBInt16("identification"),
+    EmbeddedBitStruct(
+        Struct("flags",
+            Padding(1),
+            Flag("dont_fragment"),
+            Flag("more_fragments"),
+        ),
+        Bits("frame_offset", 13),
+    ),
+    UBInt8("ttl"),
+    ProtocolEnum(UBInt8("protocol")),
+    UBInt16("checksum"),
+    IPv4Address("source"),
+    IPv4Address("destination"),
+    Field("options", lambda ctx: ctx.header_length - 20),
+)
+
+ip_header = Struct('ip_header',
    Anchor("base"),
     EmbeddedBitStruct(
-      ProtocolEnum(BitField('type', 4)),
+      IP_ProtocolEnum(BitField('type', 4)),
       Padding(4),
     ),
     Pointer(lambda ctx: ctx.base,
         Switch("data", lambda ctx: ctx.type,
             {
-                "IPv4": ipv4.ipv4_header,
+                "IPv4": ipv4_header,
                 "IPv6": ipv6.ipv6_header
             }
         )
@@ -128,8 +179,14 @@ encapcontrol = Struct('encapcontrol',
       MessageTypeEnum(BitField('type_outer_header', 4)),
       Padding(32-4),
     ),
-    ipheader,
-    udp.udp_header,
+    
+    # hardcoding that it's ipv4 works
+     ipv4_header,
+    
+    # letting the program select which version it is fails
+    # ip_header,
+     
+     udp.udp_header,
 
     Anchor("lisp_control_message"),
 
