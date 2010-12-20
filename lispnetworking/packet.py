@@ -31,11 +31,11 @@ def min1(x, ctx): return x-1
               
 ip_header = Struct('ip_header',
     Peek(EmbeddedBitStruct(
-      IP_ProtocolEnum(BitField('type', 4)),
+      IP_ProtocolEnum(Nibble('type')),
       Padding(4),
       )
     ),  
-    Switch("data", lambda ctx: ctx.type,
+    Switch("data", lambda ctx: ctx["type"],
         {
            "IPv4": ipv4.ipv4_header,
            "IPv6": ipv6.ipv6_header
@@ -82,7 +82,7 @@ map_record = Struct('map_record',
     Flag('is_probed'),
     Flag('is_reachable'),
     AFI_Enum(UBInt16('locator_afi')),
-    Switch("locator", lambda ctx: ctx.locator_afi,
+    Switch("locator", lambda ctx: ctx["locator_afi"],
     	{
                 "IPv4": ipv4.IpAddress('locator'),
                 "IPv6": ipv6.Ipv6Address('locator'),
@@ -101,7 +101,7 @@ maprequest = Struct('maprequest',
     EmbeddedBitStruct(
     
       # by now we already know it's a maprequest - job      
-      MessageTypeEnum(BitField('type', 4)),
+      MessageTypeEnum(Nibble('type')),
 
       # A This is an authoritative bit, which is set to 0 for UDP-based Map-Requests
       #      sent by an ITR.
@@ -201,7 +201,7 @@ maprequest = Struct('maprequest',
 
 mapreply = Struct('mapreply',
     EmbeddedBitStruct(
-      MessageTypeEnum(BitField('type_outer_header', 4)),
+      MessageTypeEnum(Nibble('type_outer_header')),
       Flag('in_response_to_probe'),
       Flag('have_echo_nonce'),
       Padding(18),
@@ -219,7 +219,7 @@ mapreply = Struct('mapreply',
 
 mapregister = Struct('mapregister',
     EmbeddedBitStruct(
-    	MessageTypeEnum(BitField('type_outer_header', 4)),
+    	MessageTypeEnum(Nibble('type_outer_header')),
 		Flag('proxy_map_reply'),
 		Padding(18),
         UBInt8('record_count'),
@@ -233,7 +233,7 @@ mapregister = Struct('mapregister',
 
 encapcontrol = Struct('encapcontrol',
     EmbeddedBitStruct(
-      MessageTypeEnum(BitField('type_outer_header', 4)),
+      MessageTypeEnum(Nibble('type_outer_header')),
       Padding(32-4),
     ),
     
@@ -251,13 +251,13 @@ encapcontrol = Struct('encapcontrol',
     #  to the maprequest
     Peek(EmbeddedBitStruct(
       	Enum(
-        	BitField('type_inner_header', 4),
+        	Nibble('type_inner_header'),
         	maprequest = 1
          ),
         Padding(4),
        )
     ),
-    Switch("lisp_control_message", lambda ctx: ctx.type_inner_header,
+    Switch("lisp_control_message", lambda ctx: ctx["type_inner_header"],
             {
                 "maprequest": maprequest
             }
@@ -266,11 +266,11 @@ encapcontrol = Struct('encapcontrol',
 
 structure = Struct('lisppacket',
     Peek(EmbeddedBitStruct(
-      	MessageTypeEnum(BitField('type',4)),
+      	MessageTypeEnum(Nibble('type')),
       	Padding(4),
     	)
     ),
-    Switch("data", lambda ctx: ctx.type,
+    Switch("data", lambda ctx: ctx["type"],
     	{
     		"maprequest": maprequest,
             "mapreply": mapreply,
