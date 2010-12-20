@@ -6,7 +6,16 @@ def ProtocolEnum(subcon):
     return Enum(subcon,
         IPv4 = 4,
         IPv6 = 6
-    )
+    )    
+
+def AFI_Enum(subcon):
+    return Enum(subcon,
+    	map_refresh = 0,
+    	IPv4 = 1,
+        IPv6 = 2,
+        LCAF = 16387
+    )    
+
 
 def MessageTypeEnum(subcon):
     return  Enum(subcon,
@@ -65,18 +74,19 @@ maprequest = Struct('maprequest',
       # Record count, "a receiver MUST accept and
       #  process Map-Requests that contain one or more records, but a
       #  sender MUST only send Map-Requests containing one record. "
-      Bits('recordcount', 8),
+      Bits('record_count', 8)
+   ),
       
-      # Nonce, An 8-byte random value created by the sender of the Map-
-      #  Request.  This nonce will be returned in the Map-Reply.
-      Bits('nonce', 64),
+   # Nonce, An 8-byte random value created by the sender of the Map-
+   #  Request.  This nonce will be returned in the Map-Reply.
+   Bytes('nonce', 8),
       
-      # Source-EID-AFI:  Address family of the "Source EID Address" field.    
-#      ProtocolEnum(BitField('source_eid_afi', 16)),
+   # Source-EID-AFI:  Address family of the "Source EID Address" field.    
+ #  AFI_Enum(Bytes('source_eid_afi', 2)),
       
-      # Source-EID-Address: 
-      # determine if this is a maprequest used for map-cache refreshing or rloc probing
-      # if 0 then source-eid-address field has length 0
+   # Source-EID-Address: 
+   # determine if this is a maprequest used for map-cache refreshing or rloc probing
+   # if 0 then source-eid-address field has length 0
 #      If('source_eid_afi' == 0,
 #          Bits("source_eid_address", 0)
 #      ),
@@ -107,7 +117,7 @@ maprequest = Struct('maprequest',
       
       # Mapping Protocol Data: (optional field)          
 
-   ),
+   
 )
 
 mapreply = Struct('mapreply')
