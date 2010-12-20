@@ -182,8 +182,6 @@ encapcontrol = Struct('encapcontrol',
                 "maprequest": maprequest
             }
         ),
-        
-    Probe()
 )
 
 structure = Struct('lisppacket',
