@@ -24,6 +24,10 @@ def MessageTypeEnum(subcon):
         mapregister = 3,
         encapcontrol = 8
     )
+
+def plus1(x, ctx): return x+1
+
+def min1(x, ctx): return x-1
               
 ip_header = Struct('ip_header',
     Peek(EmbeddedBitStruct(
@@ -70,9 +74,8 @@ maprequest = Struct('maprequest',
       # This 5-bit field is the ITR-RLOC Count, which encodes the
       #      additional number of (ITR-RLOC-AFI, ITR-RLOC Address) fields
       # we add 1 because this field starts at 0
-      
-	  Bits('itr_rloc_count', 5),
-      
+	  ExprAdapter(Bits('itr_rloc_count', 5), encoder = min1, decoder = plus1),
+
       # Record count, "a receiver MUST accept and
       #  process Map-Requests that contain one or more records, but a
       #  sender MUST only send Map-Requests containing one record. "
@@ -103,8 +106,8 @@ maprequest = Struct('maprequest',
    AFI_Enum(UBInt16('itr_rloc_afi')),
 
    # ITR-RLOC Addresses:
-   # we add +1 because the field starts counting at 0
-   MetaRepeater(lambda ctx: ctx["itr_rloc_count"] + 1,
+   # Remember, +1 was added to make parsing easier
+   MetaRepeater(lambda ctx: ctx["itr_rloc_count"],
 	   Switch("itr_rloc_address", lambda ctx: ctx.itr_rloc_afi,
             {
                 "zero": Pass,
