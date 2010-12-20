@@ -60,7 +60,7 @@ maprequest = Struct('maprequest',
       
       # This 5-bit field is the ITR-RLOC Count, which encodes the
       #      additional number of (ITR-RLOC-AFI, ITR-RLOC Address) fields
-      Bits('irc', 5),
+      Bits('itr_rloc_count', 5),
       
       # Record count, "a receiver MUST accept and
       #  process Map-Requests that contain one or more records, but a
@@ -69,7 +69,7 @@ maprequest = Struct('maprequest',
       
       # Nonce, An 8-byte random value created by the sender of the Map-
       #  Request.  This nonce will be returned in the Map-Reply.
-      Bytes('nonce', 8),
+      Bits('nonce', 64),
       
       # Source-EID-AFI:  Address family of the "Source EID Address" field.    
 #      ProtocolEnum(BitField('source_eid_afi', 16)),
