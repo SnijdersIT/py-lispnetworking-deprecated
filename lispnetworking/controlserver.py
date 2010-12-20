@@ -9,10 +9,8 @@ class LispControlServer(DatagramProtocol):
     def datagramReceived(self, data, (host, port)):
         # p = packet()
         # p.fromstruct(data)
-        #p = data
-        data = file("packetdump").read()
-        # file('packetdump','w').write(data)
-        parsed = packet.structure.parse(data)
+        p = data
+        parsed = packet.structure.parse(p)
         print "received from %s:%d\n%r" % (host, port, data)
         pprint.pprint(parsed.__dict__)
         # self.transport.write(data, (host, port))
