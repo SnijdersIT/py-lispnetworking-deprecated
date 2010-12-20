@@ -59,6 +59,7 @@ map_reply_record = Struct('map_reply_record',
 	),
 	# A bit
 	Flag('authoritative'),
+	# few bits are reserved
 	Padding(16),
 	Bits('map_version_number', 12),
     AFI_Enum(UBInt16('eid_afi')),
@@ -198,8 +199,23 @@ maprequest = Struct('maprequest',
    
 )
 
-mapreply = Struct('mapreply')
-
+mapreply = Struct('mapreply'
+    EmbeddedBitStruct(
+      MessageTypeEnum(BitField('type_outer_header', 4)),
+      Flag('in_response_to_probe'),
+      Flag('have_echo_nonce'),
+      Padding(18),
+      UBInt8('record_count'),
+    ),
+	#   Nonce:  A 24-bit value set in a Data-Probe packet or a 64-bit value
+	#      from the Map-Request is echoed in this Nonce field of the Map-
+	#      Reply.
+	# i think we are only replying with the 4 random bytes.. and not doing data-probing - job
+	Bytes('nonce', 8),
+	MetaRepeater(lambda ctx: ctx["record_count"],
+		map_reply_record
+	)
+)
 mapregister = Struct('mapregister')
 
 encapcontrol = Struct('encapcontrol',
