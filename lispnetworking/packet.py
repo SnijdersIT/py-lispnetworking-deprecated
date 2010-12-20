@@ -185,7 +185,7 @@ encapcontrol = Struct('encapcontrol',
     
     # letting the program select which version it is fails
     # ip_header,
-     
+     Probe(),
      udp.udp_header,
 
     Anchor("lisp_control_message"),
