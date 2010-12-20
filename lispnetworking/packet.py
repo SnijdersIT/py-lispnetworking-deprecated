@@ -44,7 +44,57 @@ ip_header = Struct('ip_header',
 )
 
 lcaf = Struct('lcaf')
-map_reply_record = Struct('map_reply_record')
+
+map_reply_record = Struct('map_reply_record',
+	EmbeddedBitStruct(
+	Bits('record_ttl', 32),
+	Bits('locator_count', 8),
+	Bits('eid_mask_len', 8),
+	Enum(Bits('action', 5),
+		no_action = 0,
+		native_forward = 1,
+		send_map_request = 2,
+		drop = 3
+	  )
+	),
+	# A bit
+	Flag('authoritative'),
+	Padding(16),
+	Bits('map_version_number', 12),
+    AFI_Enum(UBInt16('eid_afi')),
+    Switch("eid_prefix", lambda ctx: ctx.eid_afi,
+    	{
+                "IPv4": ipv4.IpAddress('eid_prefix'),
+                "IPv6": ipv6.Ipv6Address('eid_prefix'),
+                "LCAF": lcaf
+        }
+    ),
+    
+    # locator part
+    
+    UBInt8('priority'),
+    UBInt8('weight'),
+    UBInt8('multicast_priority'),
+    UBInt8('multicast_weight'),
+    Padding(13),
+    Flag('local_locator'),
+    Flag('is_probed'),
+    Flag('is_reachable'),
+    AFI_Enum(UBInt16('locator_afi')),
+    Switch("locator", lambda ctx: ctx.locator_afi,
+    	{
+                "IPv4": ipv4.IpAddress('locator'),
+                "IPv6": ipv6.Ipv6Address('locator'),
+                "LCAF": lcaf
+        }
+    )
+
+	#  Mapping Protocol Data:  See [CONS] or [ALT] for details.  This field
+    #  is optional and present when the UDP length indicates there is
+    #  enough space in the packet to include it.
+	# - thus we ignore it for now - Job
+	
+)	
 
 maprequest = Struct('maprequest',
     EmbeddedBitStruct(
@@ -149,6 +199,7 @@ maprequest = Struct('maprequest',
 )
 
 mapreply = Struct('mapreply')
+
 mapregister = Struct('mapregister')
 
 encapcontrol = Struct('encapcontrol',
