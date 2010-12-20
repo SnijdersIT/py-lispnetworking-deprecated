@@ -45,7 +45,7 @@ ip_header = Struct('ip_header',
 
 lcaf = Struct('lcaf')
 
-map_reply_record = Struct('map_reply_record',
+map_record = Struct('map_record',
 	EmbeddedBitStruct(
 	Bits('record_ttl', 32),
 	Bits('locator_count', 8),
@@ -191,7 +191,7 @@ maprequest = Struct('maprequest',
 	# this can be used for caching the RLOC's of the Source EID if the M bit is set
 	# thus with one map_request both parties know a bit more
     If(lambda ctx: ctx["map_reply_record"],
-    	map_reply_record
+    	map_record
     )
     
     # Mapping Protocol Data: (optional field)          
@@ -199,7 +199,7 @@ maprequest = Struct('maprequest',
    
 )
 
-mapreply = Struct('mapreply'
+mapreply = Struct('mapreply',
     EmbeddedBitStruct(
       MessageTypeEnum(BitField('type_outer_header', 4)),
       Flag('in_response_to_probe'),
@@ -213,10 +213,23 @@ mapreply = Struct('mapreply'
 	# i think we are only replying with the 4 random bytes.. and not doing data-probing - job
 	Bytes('nonce', 8),
 	MetaRepeater(lambda ctx: ctx["record_count"],
-		map_reply_record
+		map_record
 	)
 )
-mapregister = Struct('mapregister')
+
+mapregister = Struct('mapregister',
+    EmbeddedBitStruct(
+    	MessageTypeEnum(BitField('type_outer_header', 4)),
+		Flag('proxy_map_reply'),
+		Padding(18),
+        UBInt8('record_count'),
+	),
+	Bytes('nonce', 8),
+	UBInt8('key_id'),
+	UBInt8('authentication_length'),
+	MetaField("authentication_data", lambda ctx: ctx["authentication_length"]),
+	map_record
+)
 
 encapcontrol = Struct('encapcontrol',
     EmbeddedBitStruct(
