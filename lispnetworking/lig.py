@@ -106,7 +106,13 @@ def main():
 			payload_length = len(packet.step2), 
 			protocol = 'UDP', 
 			source = source, 
-			tos = Container(high_reliability = False, high_throuput = False, minimize_cost = False, minimize_delay = False, precedence = 0),
+			tos = Container(
+				high_reliability = False,
+				high_throuput = False,
+				minimize_cost = False,
+				minimize_delay = False,
+				precedence = 0
+				),
 			total_length = len(packet.step2) + 20,
 			ttl = 255, 
 			version = 4
