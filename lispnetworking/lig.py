@@ -1,4 +1,4 @@
-#!/opt/local/bin/python2.5
+#!/usr/bin/python2.5
 
 # from twisted.internet.protocol import DatagramProtocol
 # from twisted.internet import reactor
@@ -120,13 +120,21 @@ def main():
 #	p.type = 'encapcontrol'
 #	p.data = lisp_control_message
 	pprint.pprint(p)
-#	socket.socket(socket.AF_INET, socket.SOCK_DGRAM).sendto(p, (mapresolver,4342))
-	s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-	s.connect((mapresolver, 4342))
-	(data, addr) = s.recvfrom(1024)
-	s.close()
-	parsed = packet.structure.parse(data)
-	pprint.pprint(parsed.__dict__)
+	socket.socket(socket.AF_INET, socket.SOCK_DGRAM).sendto(p, (mapresolver,4342))
+	print(udp_header.source)
+	UDPSock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+  	listen_addr = ("", udp_header.source)
+  	UDPSock.bind(listen_addr)
+  	data,addr = UDPSock.recvfrom(1024)
+#  	print data.strip(),addr
+  	pprint.pprint(packet.structure.parse(data))
+  	
+#	s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+#	s.connect((mapresolver, 4342))
+#	(data, addr) = s.recvfrom(60)
+#	s.close()
+#	parsed = packet.structure.parse(data)
+#	pprint.pprint(parsed.__dict__)
 
 	# cool stuff not in draft-ietf-lisp-lig-02
 	# lcaf instanceid
