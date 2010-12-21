@@ -109,17 +109,18 @@ def main():
 	
 	packet.step3 = packet.ipv4.ipv4_header.build(ip_header.data) + packet.step2
 	
-	lisp_control_message = Container(
-		lisp_control_message = maprequest,
-		type_inner_header = 'maprequest',
-		type_outer_header = 'encapcontrol',
-		ip_header = ip_header,
-		udp_header = udp_header
+	outer = Container(
+		type_outer_header = 'encapcontrol'
 		)
-
-	pprint.pprint(lisp_control_message)
-
-	socket.socket(socket.AF_INET, socket.SOCK_DGRAM).sendto(packet.encapcontrol.build(lisp_control_message), (mapresolver,4342))
+	
+	p = packet.outer.build(outer) + packet.step3
+	#packet.step3
+	
+#	p = lisp_control_message
+#	p.type = 'encapcontrol'
+#	p.data = lisp_control_message
+	pprint.pprint(p)
+	socket.socket(socket.AF_INET, socket.SOCK_DGRAM).sendto(p, (mapresolver,4342))
 
 	
 	# cool stuff not in draft-ietf-lisp-lig-02

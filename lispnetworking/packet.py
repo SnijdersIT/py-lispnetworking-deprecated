@@ -234,6 +234,14 @@ mapregister = Struct('mapregister',
 	)
 )
 
+
+outer = Struct('encapcontrol',
+    EmbeddedBitStruct(
+      MessageTypeEnum(Nibble('type_outer_header')),
+      Padding(32-4)
+    )
+)
+
 encapcontrol = Struct('encapcontrol',
     EmbeddedBitStruct(
       MessageTypeEnum(Nibble('type_outer_header')),
@@ -272,7 +280,7 @@ structure = Struct('lisppacket',
       	MessageTypeEnum(Nibble('type')),
       	Padding(4),
     	),
-    perform_build = True),
+    perform_build = False),
     Switch("data", lambda ctx: ctx["type"],
     	{
 			"maprequest": maprequest,
