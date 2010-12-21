@@ -15,6 +15,14 @@ The code is in very poor state:
 	- fails if an EID has v6 rlocs
 	- fails if there is a negative mapcache-entry
 	- fails if there are multiple rlocs
+	
+lig.py depends on the following
+	- py-IPy
+	- construct
+	- optparse, sys, pprint, random, socket, struct
+	- python2.5
+	
+example:
 
 [iiivx@masteen SnijdersIT-py-lispnetworking-04fc180]$ PYTHONPATH=. lispnetworking/lig.py -m 85.184.2.42 153.16.1.0
 '\x80\x00\x00\x00E\x00\x00809\x00\x00\xff\x11\x00\x00^\x8e\xf0\xc8\x99\x10\x01\x00\xc9,\x10\xf6\x00$\x00\x00\x10\x00\x00\x01\x1b\x90\x7fj\x05{\x82\xb1\x00\x00\x00\x01^\x8e\xf0\xc8\x00 \x00\x01\x99\x10\x01\x00'
