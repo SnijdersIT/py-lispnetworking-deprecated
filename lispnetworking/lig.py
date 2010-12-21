@@ -3,16 +3,34 @@
 # from twisted.internet.protocol import DatagramProtocol
 # from twisted.internet import reactor
 
+import sys, pprint, random, socket, struct
 from construct import *
-from lispnetworking import packet
-import sys, pprint
+from construct.protocols.layer4 import udp
 from optparse import OptionParser
+from IPy import IP
+from lispnetworking import packet
 
-def main():
-	global source
-	global mapresolver
-	global eid_address
+def random_bytes(size):
+	return "".join(chr(random.randrange(0, 256)) for i in xrange(size))
 	
+def udp_checksum(self, data):
+	""" calculates the udp checksum
+	in: data(str), checksum doesnt matter
+	out: cksum(str)
+	"""
+	sum1=0
+	sum2=0
+	for i in range(len(data), 6, -1):
+		sum2 += ord(data[i-1])
+	sum1 += sum2
+	a2 = 0xff - (sum1 + sum2) % 0xff
+	return (sum1 % 0xff | a2 * 256) & 0xffff
+	
+def dottedQuadToNum(ip):
+    "convert decimal dotted quad string to long integer"
+    return struct.unpack('L',socket.inet_aton(ip))[0]
+        
+def main():
 	usage = "usage: %prog [options] -m MAPRESOLVER <EID>"
 	parser = OptionParser(usage)
 	parser.add_option("-m", "--mapresolver", dest="mapresolver",
@@ -25,78 +43,96 @@ def main():
         action="store_false", default=False, help="Display debug output")
  
 	(options, args) = parser.parse_args()
-	
+	if (not options.source):
+		source = socket.gethostbyname(socket.gethostname())
+	else: source = options.source
+	if (IP(source).iptype() == 'PRIVATE'): 
+		print('Source Address is ' + source + '. Are you sure you want to use a non-global source IP address? Proceeding anyway..')
 	if (not options.mapresolver):
 		parser.error("Please specify a map-resolver to query")
+	else: mapresolver = options.mapresolver
 	if len(args) != 1:
 		parser.error("Please specify an EID address")
 	eid_address = args[0]
-	print eid_address
-		
-	p = Container(
-	ip_header = Container(
-		data = Container(
-			checksum = 0, # must be computed later
-			destination = eid_address,
-			flags = Container(dont_fragment = False, more_fragments = False),
-			frame_offset = 0,
-			header_length = 20,
-			identification = 12345,
-			options = '', 
-			payload_length = 0, # must be computed later
-			protocol = 'UDP', 
-			source = '172.16.42.205', 
-			tos = Container(high_reliability = False, high_throuput = False, minimize_cost = False, minimize_delay = False, precedence = 0),
-			total_length = 0, # must be computed later
-			ttl = 255, 
-			version = 4
-			),
-		type = 'IPv4'
-	), 
-	lisp_control_message = Container(
+	
+	eid_prefix_afi = 'IPv' + str(IP(eid_address).version())
+	if eid_prefix_afi == 'IPv4': eid_mask_len = 32
+	if eid_prefix_afi == 'IPv6': eid_mask_len = 128
+
+	rloc_afi = 'IPv' + str(IP(source).version())
+	
+	maprequest = Container(
 		authoritive = False, 
-		eid_mask_len = 32, 
-		eid_prefix = '153.16.0.0', 
-		eid_prefix_afi = 'IPv4', 
-		itr_rloc_address = ['172.16.42.205'], 
-		itr_rloc_afi = 'IPv4', 
+		eid_mask_len = eid_mask_len, 
+		eid_prefix = eid_address, 
+		eid_prefix_afi = eid_prefix_afi, 
+		itr_rloc_address = [source],
+		itr_rloc_afi = rloc_afi, 
 		itr_rloc_count = 1, 
 		map_record = None, 
 		map_reply_record = False, 
-		nonce = '\x0f~o\xdcNxq\t', 
-		probe = False, 
-		record_count = 1, 
+		nonce = random_bytes(8), 
+		probe = False,
+		record_count = 1,
 		send_map_request = False, 
 		source_eid_address = None, 
 		source_eid_afi = 'zero', 
 		type = 'maprequest'
-	), 
-	type_inner_header = 'maprequest',
-	type_outer_header = 'encapcontrol',
+	)
+	packet.step1 = packet.maprequest.build(maprequest)
+
 	udp_header = Container(
-		checksum = 0, # must be computed later
+		# 'UDP checksum computation is optional for IPv4. If a checksum
+		# is not used it should be set to the value zero.'
+		# and because i don't understand at all how this should be done
+		# i'm just leaving it - job
+		checksum = 0x0000, 
 		destination = 4342, 
 		header_length = 8, 
-		payload_length = 0, # must be computed later
-		source = 55147)
-	)
-
-	pprint.pprint(p)
-	payload = packet.encapcontrol.build(p)
-	pprint.pprint(payload)
-		
+		payload_length = len(packet.step1), # must be computed later
+		source = random.randint(20000, 65000))	
 	
+	packet.step2 = udp.udp_header.build(udp_header) + packet.step1
 
-# mandator
-# mapresolver (name or ip)
-# eid prefix
-# optional source (v4 or v6 address)
-# debug
+	ip_header = Container(
+		data = Container(
+			checksum = 0x0000, # must be computed later
+			destination = eid_address,
+			flags = Container(dont_fragment = False, more_fragments = False),
+			frame_offset = 0, # no idea what this is
+			header_length = 20,
+			identification = 12345,
+			options = '', 
+			payload_length = len(packet.step2), 
+			protocol = 'UDP', 
+			source = source, 
+			tos = Container(high_reliability = False, high_throuput = False, minimize_cost = False, minimize_delay = False, precedence = 0),
+			total_length = len(packet.step2) + 20,
+			ttl = 255, 
+			version = 4
+			),
+		type = 'IPv4'
+	) 
+	
+	packet.step3 = packet.ipv4.ipv4_header.build(ip_header.data) + packet.step2
+	
+	lisp_control_message = Container(
+		lisp_control_message = maprequest,
+		type_inner_header = 'maprequest',
+		type_outer_header = 'encapcontrol',
+		ip_header = ip_header,
+		udp_header = udp_header
+		)
 
+	pprint.pprint(lisp_control_message)
 
-# cool stuff not in draft-ietf-lisp-lig-02
-# lcaf instanceid
-# authentication_key
+	socket.socket(socket.AF_INET, socket.SOCK_DGRAM).sendto(packet.encapcontrol.build(lisp_control_message), (mapresolver,4342))
+
+	
+	# cool stuff not in draft-ietf-lisp-lig-02
+	# lcaf instanceid
+	# authentication_key
+
 
 if __name__ == "__main__":
     main()            

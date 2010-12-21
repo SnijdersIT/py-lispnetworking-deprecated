@@ -133,12 +133,12 @@ maprequest = Struct('maprequest',
       #  sender MUST only send Map-Requests containing one record. "
       Bits('record_count', 8)
    ),
-      
+
    # Nonce, An 8-byte random value created by the sender of the Map-
    #  Request.  This nonce will be returned in the Map-Reply.
    Bytes('nonce', 8),
-
    # Source-EID-AFI:  Address family of the "Source EID Address" field.    
+
    AFI_Enum(UBInt16('source_eid_afi')),
 
    # Source-EID-Address: 
@@ -231,7 +231,7 @@ mapregister = Struct('mapregister',
 	Field("authentication_data", lambda ctx: ctx["authentication_length"]),
 	MetaRepeater(lambda ctx: ctx["record_count"],
 		map_record
-		)
+	)
 )
 
 encapcontrol = Struct('encapcontrol',
@@ -275,10 +275,10 @@ structure = Struct('lisppacket',
     ),
     Switch("data", lambda ctx: ctx["type"],
     	{
-    		"maprequest": maprequest,
-            "mapreply": mapreply,
-            "mapregister": mapregister,
-            "encapcontrol": encapcontrol
+			"maprequest": maprequest,
+			"mapreply": mapreply,
+			"mapregister": mapregister,
+			"encapcontrol": encapcontrol
         }
     )
 )
