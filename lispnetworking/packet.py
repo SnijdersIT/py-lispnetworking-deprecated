@@ -271,8 +271,8 @@ structure = Struct('lisppacket',
     Peek(EmbeddedBitStruct(
       	MessageTypeEnum(Nibble('type')),
       	Padding(4),
-    	)
-    ),
+    	),
+    perform_build = True),
     Switch("data", lambda ctx: ctx["type"],
     	{
 			"maprequest": maprequest,

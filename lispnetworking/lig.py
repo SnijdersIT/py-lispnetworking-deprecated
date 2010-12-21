@@ -13,19 +13,6 @@ from lispnetworking import packet
 def random_bytes(size):
 	return "".join(chr(random.randrange(0, 256)) for i in xrange(size))
 	
-def udp_checksum(self, data):
-	""" calculates the udp checksum
-	in: data(str), checksum doesnt matter
-	out: cksum(str)
-	"""
-	sum1=0
-	sum2=0
-	for i in range(len(data), 6, -1):
-		sum2 += ord(data[i-1])
-	sum1 += sum2
-	a2 = 0xff - (sum1 + sum2) % 0xff
-	return (sum1 % 0xff | a2 * 256) & 0xffff
-	
 def dottedQuadToNum(ip):
     "convert decimal dotted quad string to long integer"
     return struct.unpack('L',socket.inet_aton(ip))[0]
