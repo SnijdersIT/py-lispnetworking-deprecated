@@ -47,54 +47,55 @@ lcaf = Struct('lcaf')
 
 map_record = Struct('map_record',
 	EmbeddedBitStruct(
-	Bits('record_ttl', 32),
-	Bits('locator_count', 8),
-	Bits('eid_mask_len', 8),
-	Enum(Bits('action', 5),
-		no_action = 0,
-		native_forward = 1,
-		send_map_request = 2,
-		drop = 3
-	  )
+		Bits('record_ttl', 32),
+		Bits('locator_count', 8),
+		Bits('eid_mask_len', 8),
+		Enum(Bits('action', 3),
+			no_action = 0,
+			native_forward = 1,
+			send_map_request = 2,
+			drop = 3
+	  		),
+		# A bit
+		Flag('authoritative'),
+		# few bits are reserved
+		Padding(16),
+		Bits('map_version_number', 12),
+		AFI_Enum(Bits('eid_afi', 16)),
 	),
-	# A bit
-	Flag('authoritative'),
-	# few bits are reserved
-	Padding(16),
-	Bits('map_version_number', 12),
-    AFI_Enum(UBInt16('eid_afi')),
-    Switch("eid_prefix", lambda ctx: ctx.eid_afi,
+	
+	Switch("eid_prefix", lambda ctx: ctx["eid_afi"],
     	{
-                "IPv4": ipv4.IpAddress('eid_prefix'),
-                "IPv6": ipv6.Ipv6Address('eid_prefix'),
-                "LCAF": lcaf
-        }
+    		"IPv4": ipv4.IpAddress('eid_prefix'),
+            "IPv6": ipv6.Ipv6Address('eid_prefix'),
+            "LCAF": lcaf
+	    }
     ),
-    
+    	
     # locator part
-    
-    UBInt8('priority'),
-    UBInt8('weight'),
-    UBInt8('multicast_priority'),
-    UBInt8('multicast_weight'),
-    Padding(13),
-    Flag('local_locator'),
-    Flag('is_probed'),
-    Flag('is_reachable'),
-    AFI_Enum(UBInt16('locator_afi')),
+    EmbeddedBitStruct(
+ 		Bits('priority', 8),
+	    Bits('weight', 8),
+    	Bits('multicast_priority', 8),
+	    Bits('multicast_weight', 8),
+	    Padding(13),
+	    Flag('local_locator'),
+	    Flag('is_probed'),
+	    Flag('is_reachable'),
+
+	    AFI_Enum(Bits('locator_afi', 16)),
+	),
     Switch("locator", lambda ctx: ctx["locator_afi"],
     	{
-                "IPv4": ipv4.IpAddress('locator'),
-                "IPv6": ipv6.Ipv6Address('locator'),
-                "LCAF": lcaf
-        }
-    )
-
+           	"IPv4": ipv4.IpAddress('locator'),
+       		"IPv6": ipv6.Ipv6Address('locator'),
+           	"LCAF": lcaf
+       	}
+	),
 	#  Mapping Protocol Data:  See [CONS] or [ALT] for details.  This field
     #  is optional and present when the UDP length indicates there is
     #  enough space in the packet to include it.
-	# - thus we ignore it for now - Job
-	
+	# - thus we ignore it for now - Job	
 )	
 
 maprequest = Struct('maprequest',
@@ -205,7 +206,7 @@ mapreply = Struct('mapreply',
       Flag('in_response_to_probe'),
       Flag('have_echo_nonce'),
       Padding(18),
-      UBInt8('record_count'),
+      Bits('record_count', 8),
     ),
 	#   Nonce:  A 24-bit value set in a Data-Probe packet or a 64-bit value
 	#      from the Map-Request is echoed in this Nonce field of the Map-
@@ -221,14 +222,16 @@ mapregister = Struct('mapregister',
     EmbeddedBitStruct(
     	MessageTypeEnum(Nibble('type_outer_header')),
 		Flag('proxy_map_reply'),
-		Padding(18),
-        UBInt8('record_count'),
+		Padding(19),
+		Bits('record_count', 8)
 	),
 	Bytes('nonce', 8),
-	UBInt8('key_id'),
-	UBInt8('authentication_length'),
-	MetaField("authentication_data", lambda ctx: ctx["authentication_length"]),
-	map_record
+	Bytes('key_id', 2),
+	UBInt16('authentication_length'),
+	Field("authentication_data", lambda ctx: ctx["authentication_length"]),
+	MetaRepeater(lambda ctx: ctx["record_count"],
+		map_record
+		)
 )
 
 encapcontrol = Struct('encapcontrol',
