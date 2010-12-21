@@ -1,9 +1,48 @@
-a Python module for parsing and generating LISP packets, and generating & resolving map requests.
+a Python module for parsing and generating LISP packets, and generating & receiving map requests/mapreplies.
 
 This code is based on the following drafts:
 
 	- http://tools.ietf.org/html/draft-ietf-lisp-09
+
+And hopefully will soon suppport:
+
 	- https://datatracker.ietf.org/doc/draft-farinacci-lisp-lcaf/
 
 More information about LISP can be found on http://www.lisp4.net/
 
+The code is in very poor state:
+	- only works for IPv4
+	- fails if an EID has v6 rlocs
+	- fails if there is a negative mapcache-entry
+	- fails if there are multiple rlocs
+
+[iiivx@masteen SnijdersIT-py-lispnetworking-04fc180]$ PYTHONPATH=. lispnetworking/lig.py -m 85.184.2.42 153.16.1.0
+'\x80\x00\x00\x00E\x00\x00809\x00\x00\xff\x11\x00\x00^\x8e\xf0\xc8\x99\x10\x01\x00\xc9,\x10\xf6\x00$\x00\x00\x10\x00\x00\x01\x1b\x90\x7fj\x05{\x82\xb1\x00\x00\x00\x01^\x8e\xf0\xc8\x00 \x00\x01\x99\x10\x01\x00'
+51500
+Container(
+	data = Container(
+		have_echo_nonce = False,
+		in_response_to_probe = False, 
+		map_record = [Container(
+			action = 'no_action', 
+			authoritative = True, 
+			eid_afi = 'IPv4', 
+			eid_mask_len = 24, 
+			eid_prefix = '153.16.1.0', 
+			is_probed = False, 
+			is_reachable = True, 
+			local_locator = True, 
+			locator = '129.250.1.255', 
+			locator_afi = 'IPv4', 
+			locator_count = 2, 
+			map_version_number = 0, 
+			multicast_priority = 255, 
+			multicast_weight = 0, 
+			priority = 254, 
+			record_ttl = 1440, 
+			weight = 0)], 
+		nonce = '\x1b\x90\x7fj\x05{\x82\xb1', 
+		record_count = 1, 
+		type_outer_header = 'mapreply'), 
+		type = 'mapreply')
+[iiivx@masteen SnijdersIT-py-lispnetworking-04fc180]$ 
