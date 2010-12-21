@@ -33,23 +33,21 @@ def main():
 	eid_address = args[0]
 	print eid_address
 		
-	p = Container()	
-	p.type = 'encapcontrol'
-	p.data = Container(
+	p = Container(
 	ip_header = Container(
 		data = Container(
-			checksum = 20513,
-			destination = '153.16.0.0',
+			checksum = 0, # must be computed later
+			destination = eid_address,
 			flags = Container(dont_fragment = False, more_fragments = False),
 			frame_offset = 0,
 			header_length = 20,
-			identification = 54321,
+			identification = 12345,
 			options = '', 
-			payload_length = 36, 
+			payload_length = 0, # must be computed later
 			protocol = 'UDP', 
 			source = '172.16.42.205', 
 			tos = Container(high_reliability = False, high_throuput = False, minimize_cost = False, minimize_delay = False, precedence = 0),
-			total_length = 56, 
+			total_length = 0, # must be computed later
 			ttl = 255, 
 			version = 4
 			),
@@ -76,25 +74,15 @@ def main():
 	type_inner_header = 'maprequest',
 	type_outer_header = 'encapcontrol',
 	udp_header = Container(
-		checksum = 59496,
+		checksum = 0, # must be computed later
 		destination = 4342, 
 		header_length = 8, 
-		payload_length = 28, 
+		payload_length = 0, # must be computed later
 		source = 55147)
 	)
 
-#	p.data = Container()
-	
-#	p.data.ip_header = Container()
-#	p.data.ip_header.type = 'IPv4',
-	
-#	p.data.ip_header.data = Container()
-#	p.data.ip_header.data.destination = eid_address,
-#	p.data.ip_header.data.identification = '12345',
-#	p.data.ip_header.data.protocol = 'UDP',
-#	p.data.ip_header.data.source = options.source
-	pprint.pprint(p.type)
-	payload = packet.structure.build(p)
+	pprint.pprint(p)
+	payload = packet.encapcontrol.build(p)
 	pprint.pprint(payload)
 		
 	

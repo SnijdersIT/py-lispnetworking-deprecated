@@ -32,9 +32,9 @@ def min1(x, ctx): return x-1
 ip_header = Struct('ip_header',
     Peek(EmbeddedBitStruct(
       IP_ProtocolEnum(Nibble('type')),
-      Padding(4),
-      )
-    ),  
+      Padding(4)
+      ),
+    perform_build = True),  
     Switch("data", lambda ctx: ctx["type"],
         {
            "IPv4": ipv4.ipv4_header,
@@ -258,8 +258,8 @@ encapcontrol = Struct('encapcontrol',
         	maprequest = 1
          ),
         Padding(4),
-       )
-    ),
+       ),
+    perform_build = True),  
     Switch("lisp_control_message", lambda ctx: ctx["type_inner_header"],
             {
                 "maprequest": maprequest
