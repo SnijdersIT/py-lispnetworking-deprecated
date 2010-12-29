@@ -7,11 +7,11 @@ def IP_ProtocolEnum(subcon):
         IPv4 = 4,
         IPv6 = 6
     )    
-
+    
 def AFI_Enum(subcon):
     return Enum(subcon,
-    	zero = 0,
-    	IPv4 = 1,
+        zero = 0,
+        IPv4 = 1,
         IPv6 = 2,
         LCAF = 16387
     )    
@@ -46,57 +46,57 @@ ip_header = Struct('ip_header',
 lcaf = Struct('lcaf')
 
 map_record = Struct('map_record',
-	EmbeddedBitStruct(
-		Bits('record_ttl', 32),
-		Bits('locator_count', 8),
-		Bits('eid_mask_len', 8),
-		Enum(Bits('action', 3),
-			no_action = 0,
-			native_forward = 1,
-			send_map_request = 2,
-			drop = 3
-	  		),
-		# A bit
-		Flag('authoritative'),
-		# few bits are reserved
-		Padding(16),
-		Bits('map_version_number', 12),
-		AFI_Enum(Bits('eid_afi', 16)),
-	),
-	
-	Switch("eid_prefix", lambda ctx: ctx["eid_afi"],
-    	{
-    		"IPv4": ipv4.IpAddress('eid_prefix'),
+    EmbeddedBitStruct(
+        Bits('record_ttl', 32),
+        Bits('locator_count', 8),
+        Bits('eid_mask_len', 8),
+        Enum(Bits('action', 3),
+            no_action = 0,
+            native_forward = 1,
+            send_map_request = 2,
+            drop = 3
+            ),
+        # A bit
+        Flag('authoritative'),
+        # few bits are reserved
+        Padding(16),
+        Bits('map_version_number', 12),
+        AFI_Enum(Bits('eid_afi', 16)),
+    ),
+    
+    Switch("eid_prefix", lambda ctx: ctx["eid_afi"],
+        {
+            "IPv4": ipv4.IpAddress('eid_prefix'),
             "IPv6": ipv6.Ipv6Address('eid_prefix'),
             "LCAF": lcaf
-	    }
+        }
     ),
-    	
+        
     # locator part
     EmbeddedBitStruct(
- 		Bits('priority', 8),
-	    Bits('weight', 8),
-    	Bits('multicast_priority', 8),
-	    Bits('multicast_weight', 8),
-	    Padding(13),
-	    Flag('local_locator'),
-	    Flag('is_probed'),
-	    Flag('is_reachable'),
+        Bits('priority', 8),
+        Bits('weight', 8),
+        Bits('multicast_priority', 8),
+        Bits('multicast_weight', 8),
+        Padding(13),
+        Flag('local_locator'),
+        Flag('is_probed'),
+        Flag('is_reachable'),
 
-	    AFI_Enum(Bits('locator_afi', 16)),
-	),
+        AFI_Enum(Bits('locator_afi', 16)),
+    ),
     Switch("locator", lambda ctx: ctx["locator_afi"],
-    	{
-           	"IPv4": ipv4.IpAddress('locator'),
-       		"IPv6": ipv6.Ipv6Address('locator'),
-           	"LCAF": lcaf
-       	}
-	),
-	#  Mapping Protocol Data:  See [CONS] or [ALT] for details.  This field
+        {
+            "IPv4": ipv4.IpAddress('locator'),
+            "IPv6": ipv6.Ipv6Address('locator'),
+            "LCAF": lcaf
+        }
+    ),
+    #  Mapping Protocol Data:  See [CONS] or [ALT] for details.  This field
     #  is optional and present when the UDP length indicates there is
     #  enough space in the packet to include it.
-	# - thus we ignore it for now - Job	
-)	
+    # - thus we ignore it for now - Job 
+)   
 
 maprequest = Struct('maprequest',
     EmbeddedBitStruct(
@@ -126,7 +126,7 @@ maprequest = Struct('maprequest',
       # This 5-bit field is the ITR-RLOC Count, which encodes the
       #      additional number of (ITR-RLOC-AFI, ITR-RLOC Address) fields
       # we add 1 because this field starts at 0
-	  ExprAdapter(Bits('itr_rloc_count', 5), encoder = min1, decoder = plus1),
+      ExprAdapter(Bits('itr_rloc_count', 5), encoder = min1, decoder = plus1),
 
       # Record count, "a receiver MUST accept and
       #  process Map-Requests that contain one or more records, but a
@@ -160,7 +160,7 @@ maprequest = Struct('maprequest',
    # ITR-RLOC Addresses:
    # Remember, +1 was added to make parsing easier
    MetaRepeater(lambda ctx: ctx["itr_rloc_count"],
-	   Switch("itr_rloc_address", lambda ctx: ctx.itr_rloc_afi,
+       Switch("itr_rloc_address", lambda ctx: ctx.itr_rloc_afi,
             {
                 "zero": Pass,
                 "IPv4": ipv4.IpAddress('itr_rloc_address'),
@@ -180,7 +180,7 @@ maprequest = Struct('maprequest',
     AFI_Enum(UBInt16('eid_prefix_afi')),
       
     #  EID-prefix:
-	Switch("eid_prefix", lambda ctx: ctx.eid_prefix_afi,
+    Switch("eid_prefix", lambda ctx: ctx.eid_prefix_afi,
         {
             "IPv4": ipv4.IpAddress('eid_prefix'),
             "IPv6": ipv6.Ipv6Address('eid_prefix'),
@@ -188,15 +188,15 @@ maprequest = Struct('maprequest',
          }
     ),
       
-	# Map-Reply Record: 
-	# this can be used for caching the RLOC's of the Source EID if the M bit is set
-	# thus with one map_request both parties know a bit more
+    # Map-Reply Record: 
+    # this can be used for caching the RLOC's of the Source EID if the M bit is set
+    # thus with one map_request both parties know a bit more
     If(lambda ctx: ctx["map_reply_record"],
-    	map_record
+        map_record
     )
     
     # Mapping Protocol Data: (optional field)          
-	# we don't support CONS so we ignore for the moment
+    # we don't support CONS so we ignore for the moment
    
 )
 
@@ -208,30 +208,30 @@ mapreply = Struct('mapreply',
       Padding(18),
       Bits('record_count', 8),
     ),
-	#   Nonce:  A 24-bit value set in a Data-Probe packet or a 64-bit value
-	#      from the Map-Request is echoed in this Nonce field of the Map-
-	#      Reply.
-	# i think we are only replying with the 4 random bytes.. and not doing data-probing - job
-	Bytes('nonce', 8),
-	MetaRepeater(lambda ctx: ctx["record_count"],
-		map_record
-	)
+    #   Nonce:  A 24-bit value set in a Data-Probe packet or a 64-bit value
+    #      from the Map-Request is echoed in this Nonce field of the Map-
+    #      Reply.
+    # i think we are only replying with the 4 random bytes.. and not doing data-probing - job
+    Bytes('nonce', 8),
+    MetaRepeater(lambda ctx: ctx["record_count"],
+        map_record
+    )
 )
 
 mapregister = Struct('mapregister',
     EmbeddedBitStruct(
-    	MessageTypeEnum(Nibble('type_outer_header')),
-		Flag('proxy_map_reply'),
-		Padding(19),
-		Bits('record_count', 8)
-	),
-	Bytes('nonce', 8),
-	Bytes('key_id', 2),
-	UBInt16('authentication_length'),
-	Field("authentication_data", lambda ctx: ctx["authentication_length"]),
-	MetaRepeater(lambda ctx: ctx["record_count"],
-		map_record
-	)
+        MessageTypeEnum(Nibble('type_outer_header')),
+        Flag('proxy_map_reply'),
+        Padding(19),
+        Bits('record_count', 8)
+    ),
+    Bytes('nonce', 8),
+    Bytes('key_id', 2),
+    UBInt16('authentication_length'),
+    Field("authentication_data", lambda ctx: ctx["authentication_length"]),
+    MetaRepeater(lambda ctx: ctx["record_count"],
+        map_record
+    )
 )
 
 
@@ -256,14 +256,14 @@ encapcontrol = Struct('encapcontrol',
     # innder UDP header, the destination port should be 4342
     udp.udp_header,
 
-	#  At this time, only Map-Request messages and PIM
+    #  At this time, only Map-Request messages and PIM
     #  Join-Prune messages [MLISP] are allowed to be encapsulated.
     #  but since we not doing anything with MLISP we can only switch
     #  to the maprequest
     Peek(EmbeddedBitStruct(
-      	Enum(
-        	Nibble('type_inner_header'),
-        	maprequest = 1
+        Enum(
+            Nibble('type_inner_header'),
+            maprequest = 1
          ),
         Padding(4),
        ),
@@ -277,16 +277,16 @@ encapcontrol = Struct('encapcontrol',
 
 structure = Struct('lisppacket',
     Peek(EmbeddedBitStruct(
-      	MessageTypeEnum(Nibble('type')),
-      	Padding(4),
-    	),
+        MessageTypeEnum(Nibble('type')),
+        Padding(4),
+        ),
     perform_build = False),
     Switch("data", lambda ctx: ctx["type"],
-    	{
-			"maprequest": maprequest,
-			"mapreply": mapreply,
-			"mapregister": mapregister,
-			"encapcontrol": encapcontrol
+        {
+            "maprequest": maprequest,
+            "mapreply": mapreply,
+            "mapregister": mapregister,
+            "encapcontrol": encapcontrol
         }
     )
 )
