@@ -6,6 +6,11 @@
 
     https://github.com/intouch/py-lispnetworking
 
+    I made the wrong choice in regards to the packet 
+    decoding and encoding library. Together with the 
+    InTouch team we'll start from scratch
+
+    - Job (31-05-2011)
 =========================================================
 
 
